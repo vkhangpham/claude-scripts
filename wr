@@ -1,0 +1,4 @@
+#!/bin/bash
+# WordReference French-English CLI wrapper
+script_dir="$(dirname "$0")"
+exec python "$script_dir/wordref-rich.py" "$@"

@@ -1,0 +1,92 @@
+#!/bin/bash
+# English to French Translation + Conjugation Pipeline
+# Translates English verb to French, then conjugates the French verb
+# Usage: wr-cj [english_word] [person] [tense]
+
+if [ $# -eq 0 ]; then
+    echo "Usage: wr-cj [english_word] [person] [tense]"
+    echo ""
+    echo "Basic Examples:"
+    echo "  wr-cj run            # run → 'courir' → all conjugations"
+    echo "  wr-cj have           # have → 'avoir' → all conjugations"
+    echo "  wr-cj eat            # eat → 'manger' → all conjugations"
+    echo ""
+    echo "With Person/Tense (both formats supported):"
+    echo "  wr-cj run je         # run → 'courir' → all tenses for 'je'"  
+    echo "  wr-cj run tu p       # run → 'courir' → 'tu cours' (original format)"
+    echo "  wr-cj run -p tu      # run → 'courir' → 'tu cours' (flag format)"
+    echo "  wr-cj eat -f nous    # eat → 'manger' → 'nous mangerons'"
+    echo "  wr-cj have -pp       # have → 'avoir' → participe passé"
+    echo ""
+    echo "See 'cj --help' for all person and tense options"
+    exit 1
+fi
+
+word="$1"
+script_dir="$(dirname "$0")"
+
+# English word: translate to French, then conjugate French verb
+wr_output=$("$script_dir/wr" "$word" "en")
+echo "$wr_output"
+echo ""
+
+# Extract first French verb from the translation (3rd column)
+# Get the third column content and extract verb before grammatical type
+verb=$(echo "$wr_output" | grep -E '│.*\[v[a-z]*\]' | head -1 | sed -E 's/.*│[[:space:]]*([^│]+)│[[:space:]]*$/\1/' | sed -E 's/[[:space:]]+v[a-z]*[[:space:]]*$//' | xargs)
+
+if [ -z "$verb" ] || [ "$verb" = "$word" ]; then
+    echo "❌ No French verb found in translation. Cannot conjugate."
+    exit 1
+fi
+
+# Build conjugation command with correct argument order
+# Check if second argument is a tense that doesn't need a person (participles, infinitives)
+impersonal_tenses=("pp" "part-passe" "part-passé" "participe-passé" "part" "part-pres" "participle" "gérondif" "ger" "inf" "infinitive" "infinitif" "inf-passe" "inf-passé")
+
+if [ $# -eq 1 ]; then
+    # Mode 1: All conjugations
+    "$script_dir/cj" "$verb"
+elif [ $# -eq 2 ]; then
+    # Mode 2: Person + verb OR verb + tense (for participles/infinitives) OR flag format
+    second_arg="$2"
+    
+    # Check for flag format: wr-cj word -tense
+    if [[ "$second_arg" =~ ^-[a-zA-Z]+ ]]; then
+        # Flag format: wr-cj word -tense (for participles/infinitives)
+        "$script_dir/cj" "$second_arg" "$verb"
+    else
+        # Original format
+        # Check if this is an impersonal tense
+        is_impersonal=false
+        for tense in "${impersonal_tenses[@]}"; do
+            if [[ "$second_arg" == "$tense" ]]; then
+                is_impersonal=true
+                break
+            fi
+        done
+        
+        if $is_impersonal; then
+            # This is verb + tense (participle/infinitive)
+            "$script_dir/cj" "$verb" "$second_arg"
+        else
+            # This is person + verb
+            "$script_dir/cj" "$second_arg" "$verb"
+        fi
+    fi
+elif [ $# -eq 3 ]; then
+    # Mode 3: Person + verb + tense OR flag format: wr-cj word -tense person
+    second_arg="$2"
+    third_arg="$3"
+    
+    # Check for flag format: wr-cj word -tense person
+    if [[ "$second_arg" =~ ^-[a-zA-Z]+ ]]; then
+        # Flag format: wr-cj word -tense person
+        "$script_dir/cj" "$second_arg" "$third_arg" "$verb"
+    else
+        # Original format: wr-cj word person tense
+        "$script_dir/cj" "$second_arg" "$verb" "$third_arg"
+    fi
+else
+    echo "❌ Too many arguments. Maximum: wr-cj [word] [person] [tense] or wr-cj [word] -[tense] [person]"
+    exit 1
+fi

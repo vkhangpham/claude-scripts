@@ -1,0 +1,326 @@
+#!/bin/bash
+
+# PDF Page Extraction and Reading Tool
+# Usage: pdf-extract <pdf_file> [options]
+
+set -e
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Default values
+OUTPUT_DIR="./pdf_extracted"
+METHOD="auto"
+PAGES=""
+OUTPUT_FORMAT="text"
+USE_OCR="auto"
+OCR_LANG=""
+
+# Function to display usage
+usage() {
+    echo "Usage: pdf-extract <pdf_file> [options]"
+    echo
+    echo "Options:"
+    echo "  -p, --pages <range>     Page range (e.g., '1-5', '3,5,7', '10-')"
+    echo "  -o, --output <dir>      Output directory (default: ./pdf_extracted)"
+    echo "  -m, --method <method>   Extraction method: text, image, auto (default: auto)"
+    echo "  -f, --format <format>   Output format: text, images, both (default: text)"
+    echo "  --ocr <mode>            OCR mode: auto, force, skip (default: auto)"
+    echo "  --lang <code>           OCR language (e.g., en, fr, ch_sim, etc.)"
+    echo "  -h, --help              Show this help message"
+    echo
+    echo "Examples:"
+    echo "  pdf-extract document.pdf -p 1-10"
+    echo "  pdf-extract book.pdf -p 5,10,15-20 -m text"
+    echo "  pdf-extract scan.pdf -p 1-3 -m image -f images"
+    echo "  pdf-extract scan.pdf -p 1-5 --ocr force"
+    echo "  pdf-extract french.pdf -p 1-10 --ocr force --lang fr"
+    exit 0
+}
+
+# Parse command line arguments
+if [ $# -eq 0 ]; then
+    usage
+fi
+
+PDF_FILE="$1"
+shift
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -p|--pages)
+            PAGES="$2"
+            shift 2
+            ;;
+        -o|--output)
+            OUTPUT_DIR="$2"
+            shift 2
+            ;;
+        -m|--method)
+            METHOD="$2"
+            shift 2
+            ;;
+        -f|--format)
+            OUTPUT_FORMAT="$2"
+            shift 2
+            ;;
+        --ocr)
+            USE_OCR="$2"
+            shift 2
+            ;;
+        --lang)
+            OCR_LANG="$2"
+            shift 2
+            ;;
+        -h|--help)
+            usage
+            ;;
+        *)
+            echo -e "${RED}Unknown option: $1${NC}"
+            usage
+            ;;
+    esac
+done
+
+# Validate PDF file
+if [ ! -f "$PDF_FILE" ]; then
+    echo -e "${RED}Error: PDF file not found: $PDF_FILE${NC}"
+    exit 1
+fi
+
+# Create output directory
+mkdir -p "$OUTPUT_DIR"
+
+# Get PDF info
+echo -e "${BLUE}Analyzing PDF...${NC}"
+TOTAL_PAGES=$(pdfinfo "$PDF_FILE" 2>/dev/null | grep "Pages:" | awk '{print $2}')
+echo "Total pages: $TOTAL_PAGES"
+
+# Parse page range
+parse_pages() {
+    local range="$1"
+    local total="$2"
+    local result=""
+    
+    if [ -z "$range" ]; then
+        echo "1-$total"
+        return
+    fi
+    
+    # Handle different formats: "1-5", "3,5,7", "10-", "-5"
+    IFS=',' read -ra PARTS <<< "$range"
+    for part in "${PARTS[@]}"; do
+        if [[ "$part" =~ ^([0-9]+)-([0-9]+)$ ]]; then
+            # Range like "1-5"
+            start="${BASH_REMATCH[1]}"
+            end="${BASH_REMATCH[2]}"
+            for ((i=start; i<=end && i<=total; i++)); do
+                result="$result $i"
+            done
+        elif [[ "$part" =~ ^([0-9]+)-$ ]]; then
+            # Range like "10-"
+            start="${BASH_REMATCH[1]}"
+            for ((i=start; i<=total; i++)); do
+                result="$result $i"
+            done
+        elif [[ "$part" =~ ^-([0-9]+)$ ]]; then
+            # Range like "-5"
+            end="${BASH_REMATCH[1]}"
+            for ((i=1; i<=end && i<=total; i++)); do
+                result="$result $i"
+            done
+        elif [[ "$part" =~ ^[0-9]+$ ]]; then
+            # Single page
+            result="$result $part"
+        fi
+    done
+    
+    echo "$result" | xargs -n1 | sort -n -u | xargs
+}
+
+PAGES_TO_EXTRACT=$(parse_pages "$PAGES" "$TOTAL_PAGES")
+echo -e "Pages to extract: ${GREEN}$PAGES_TO_EXTRACT${NC}"
+
+# Function to extract text using pdftotext
+extract_text() {
+    local page="$1"
+    local output_file="$OUTPUT_DIR/page_${page}.txt"
+    
+    # Extract single page as text
+    if pdftotext -f "$page" -l "$page" "$PDF_FILE" "$output_file" 2>/dev/null; then
+        # Check if the file has content
+        if [ -s "$output_file" ]; then
+            echo -e "${GREEN}✓${NC} Page $page extracted as text"
+            return 0
+        else
+            rm -f "$output_file"
+            return 1
+        fi
+    else
+        return 1
+    fi
+}
+
+# Function to extract page as image
+extract_image() {
+    local page="$1"
+    local output_file="$OUTPUT_DIR/page_${page}.png"
+    
+    # Extract single page as image
+    if pdftoppm -f "$page" -l "$page" -png -singlefile "$PDF_FILE" "$OUTPUT_DIR/page_${page}" 2>/dev/null; then
+        echo -e "${GREEN}✓${NC} Page $page extracted as image"
+        return 0
+    else
+        return 1
+    fi
+}
+
+# Main extraction loop
+echo -e "\n${BLUE}Extracting pages...${NC}"
+
+for page in $PAGES_TO_EXTRACT; do
+    echo -n "Processing page $page... "
+    
+    case "$METHOD" in
+        text)
+            if ! extract_text "$page"; then
+                echo -e "${YELLOW}Warning: Could not extract text from page $page${NC}"
+            fi
+            ;;
+        image)
+            if ! extract_image "$page"; then
+                echo -e "${RED}Error: Could not extract page $page as image${NC}"
+            fi
+            ;;
+        auto)
+            # Try text first, then fall back to image
+            if ! extract_text "$page"; then
+                if [ "$OUTPUT_FORMAT" != "text" ] || [ "$USE_OCR" = "force" ]; then
+                    extract_image "$page"
+                else
+                    echo -e "${YELLOW}Warning: Page $page appears to be scanned/image-based${NC}"
+                fi
+            elif [ "$USE_OCR" = "force" ]; then
+                # Force OCR mode: also extract as image even if text extraction worked
+                extract_image "$page"
+            fi
+            ;;
+    esac
+done
+
+# Combine text files if requested
+if [ "$OUTPUT_FORMAT" = "text" ] || [ "$OUTPUT_FORMAT" = "both" ]; then
+    echo -e "\n${BLUE}Combining text files...${NC}"
+    combined_file="$OUTPUT_DIR/combined_output.txt"
+    > "$combined_file"
+    
+    for page in $PAGES_TO_EXTRACT; do
+        text_file="$OUTPUT_DIR/page_${page}.txt"
+        if [ -f "$text_file" ]; then
+            echo -e "\n========== Page $page ==========" >> "$combined_file"
+            cat "$text_file" >> "$combined_file"
+        fi
+    done
+    
+    if [ -s "$combined_file" ]; then
+        echo -e "${GREEN}Combined text saved to: $combined_file${NC}"
+        echo -e "\n${BLUE}Preview of extracted content:${NC}"
+        echo "----------------------------------------"
+        head -n 20 "$combined_file"
+        echo "----------------------------------------"
+        echo -e "${YELLOW}(Showing first 20 lines)${NC}"
+    fi
+fi
+
+# Summary
+echo -e "\n${GREEN}Extraction complete!${NC}"
+echo "Output directory: $OUTPUT_DIR"
+ls -la "$OUTPUT_DIR" | grep -E "\.(txt|png)$" | wc -l | xargs echo "Files created:"
+
+# If images were created and OCR is needed
+if ls "$OUTPUT_DIR"/*.png >/dev/null 2>&1; then
+    echo -e "\n${YELLOW}Note: Some pages were extracted as images.${NC}"
+    
+    # Check OCR mode
+    if [ "$USE_OCR" = "skip" ]; then
+        echo "OCR skipped (--ocr skip)"
+    elif [ "$USE_OCR" = "force" ] || [ "$USE_OCR" = "auto" ]; then
+        # Check if PaddleOCR is available
+        if command -v paddleocr &> /dev/null || [ -n "$(/Users/kylepham/miniconda3/envs/paddleocr/bin/python -c 'import paddleocr' 2>/dev/null && echo "ok")" ]; then
+        echo -e "${BLUE}Running PaddleOCR on extracted images...${NC}"
+        
+        # Create OCR output directory
+        mkdir -p "$OUTPUT_DIR/ocr"
+        
+        # Run PaddleOCR on each image
+        for img in "$OUTPUT_DIR"/*.png; do
+            if [ -f "$img" ]; then
+                basename=$(basename "$img" .png)
+                echo -n "OCR processing $basename... "
+                
+                # Run PaddleOCR using the conda environment
+                # Build the command with optional language parameter
+                ocr_cmd="/Users/kylepham/miniconda3/envs/paddleocr/bin/paddleocr ocr -i \"$img\""
+                if [ -n "$OCR_LANG" ]; then
+                    ocr_cmd="$ocr_cmd --lang $OCR_LANG"
+                fi
+                
+                if eval "$ocr_cmd" > "$OUTPUT_DIR/ocr/${basename}_ocr.txt" 2>&1; then
+                    echo -e "${GREEN}✓${NC}"
+                else
+                    echo -e "${YELLOW}failed${NC}"
+                fi
+            fi
+        done
+        
+        # Combine OCR results
+        ocr_combined="$OUTPUT_DIR/ocr/combined_ocr.txt"
+        > "$ocr_combined"
+        
+        for page in $PAGES_TO_EXTRACT; do
+            ocr_file="$OUTPUT_DIR/ocr/page_${page}_ocr.txt"
+            if [ -f "$ocr_file" ]; then
+                echo -e "\n========== Page $page (OCR) ==========" >> "$ocr_combined"
+                # Extract text from PaddleOCR output
+                # PaddleOCR outputs a Python dictionary, extract rec_texts array
+                if grep -q "rec_texts" "$ocr_file" 2>/dev/null; then
+                    # Extract text from rec_texts array
+                    python3 -c "
+import re
+import sys
+
+with open('$ocr_file', 'r') as f:
+    content = f.read()
+    
+# Find rec_texts array - look for the pattern more carefully
+match = re.search(r\"'rec_texts': \[(.*?)\](?:, 'rec_scores'|}})\", content, re.DOTALL)
+if match:
+    texts = match.group(1)
+    # Extract individual strings, handling escaped quotes
+    strings = re.findall(r\"'([^'\\\\]*(?:\\\\.[^'\\\\]*)*)'|\\\"([^\\\"\\\\]*(?:\\\\.[^\\\"\\\\]*)*)\\\"\", texts)
+    for s in strings:
+        text = s[0] if s[0] else s[1]
+        if text:
+            # Unescape the text
+            text = text.replace(r\"\\'\", \"'\")
+            print(text)
+" >> "$ocr_combined" 2>/dev/null || true
+                fi
+            fi
+        done
+        
+        if [ -s "$ocr_combined" ]; then
+            echo -e "${GREEN}OCR results saved to: $ocr_combined${NC}"
+        fi
+    else
+        echo "To perform OCR on these images, you can:"
+        echo "  - Install PaddleOCR: pip install paddleocr"
+        echo "  - Use tesseract (if installed): tesseract image.png output.txt"
+        echo "  - Or use Claude to read the images directly"
+        fi
+    fi
+fi

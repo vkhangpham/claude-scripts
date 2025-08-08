@@ -1,0 +1,9 @@
+#!/bin/bash
+# French pronunciation tool using macOS say
+if [ $# -eq 0 ]; then
+    echo "Usage: speak-fr <french text>"
+    echo "Example: speak-fr \"tu manges\""
+    exit 1
+fi
+
+say -v "Eddy (French (France))" "$*"
