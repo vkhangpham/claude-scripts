@@ -169,6 +169,7 @@ def show_all_cache_stats():
     cache_files = {
         'wordreference': 'WordReference',
         'conjugation': 'Conjugation',
+        'larousse': 'Larousse',
         'verbecc': 'VerbECC'
     }
     
@@ -205,7 +206,7 @@ def clear_all_caches():
         return
     
     cleared_count = 0
-    cache_files = ['wordreference', 'conjugation', 'verbecc']
+    cache_files = ['wordreference', 'conjugation', 'larousse', 'verbecc']
     
     for cache_name in cache_files:
         cache = ToolCache(cache_name)
@@ -227,7 +228,7 @@ def cleanup_expired_all():
         return
     
     total_removed = 0
-    cache_files = ['wordreference', 'conjugation', 'verbecc']
+    cache_files = ['wordreference', 'conjugation', 'larousse', 'verbecc']
     
     for cache_name in cache_files:
         cache = ToolCache(cache_name)

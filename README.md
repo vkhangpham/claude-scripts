@@ -28,6 +28,16 @@ A collection of helpful command-line tools and scripts created with Claude's ass
 - **Usage**: `wr-cj <english_verb> [person] [tense]`
 - **Features**: Automatically extracts French verb from translation and conjugates it
 
+### French Dictionary (`lr`)
+- **Purpose**: French-French monolingual dictionary using Larousse
+- **Usage**: `lr <mot_français>`
+- **Features**: 
+  - Complete French definitions with numbered meanings
+  - Etymology and grammatical information
+  - Synonyms and antonyms for each definition
+  - Beautiful terminal formatting with Rich library
+- **Caching**: 14-day cache with management commands
+
 ### French Pronunciation (`speak-fr`)
 - **Purpose**: French text-to-speech using macOS built-in voices
 - **Usage**: `speak-fr "<french_text>"`
@@ -47,9 +57,10 @@ A collection of helpful command-line tools and scripts created with Claude's ass
 
 - **Rich Library**: Beautiful terminal formatting with colors and tables
 - **verbecc**: Machine learning-based French conjugation engine
-- **BeautifulSoup4**: Web scraping for WordReference translations
-- **Caching System**: JSON-based persistent caching with expiration
+- **BeautifulSoup4**: Web scraping for WordReference translations and Larousse dictionary
+- **Caching System**: JSON-based persistent caching with expiration (7-30 days depending on tool)
 - **macOS Integration**: Native text-to-speech for pronunciation
+- **Larousse Integration**: French monolingual dictionary with comprehensive definitions
 
 ## Installation
 
@@ -60,7 +71,7 @@ A collection of helpful command-line tools and scripts created with Claude's ass
 
 2. Make scripts executable:
    ```bash
-   chmod +x wr cj wr-cj speak-fr
+   chmod +x wr cj lr wr-cj speak-fr
    ```
 
 3. Add to PATH or create aliases as needed.
@@ -68,6 +79,47 @@ A collection of helpful command-line tools and scripts created with Claude's ass
 ## Cache Management
 
 All tools support cache management:
-- `--cache-stats`: View cache statistics
+- `--cache-stats`: View cache statistics for all French learning tools
 - `--clear-cache`: Clear all cached data
 - `--cleanup-cache`: Remove expired entries only
+
+## Examples
+
+### Basic French Learning Workflow
+```bash
+# Look up an English word
+wr run
+# → Shows French translations including "courir"
+
+# Get French definitions 
+lr courir
+# → Shows comprehensive French definitions from Larousse
+
+# Conjugate the French verb
+cj courir
+# → Shows all conjugations
+
+# Practice pronunciation
+speak-fr "je cours, tu cours, il court"
+# → Speaks French with native pronunciation
+```
+
+### Pipeline Workflow
+```bash
+# Combined translation + conjugation
+wr-cj run je p
+# → Translates "run" to French, then shows "je cours"
+
+# Check cache status
+lr --cache-stats
+# → Shows cache statistics for all tools
+```
+
+## Complete French Learning Toolkit
+
+This collection provides a comprehensive French learning environment:
+- **Translation**: English ↔ French with context
+- **Dictionary**: French definitions and etymology  
+- **Conjugation**: Complete verb forms and tenses
+- **Pronunciation**: Native French audio output
+- **Caching**: Offline access to previous lookups

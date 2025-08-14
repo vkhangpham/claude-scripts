@@ -1,0 +1,4 @@
+#!/bin/bash
+# Larousse French-French Dictionary CLI wrapper
+script_dir="$(dirname "$0")"
+exec python "$script_dir/larousse-dict.py" "$@"
