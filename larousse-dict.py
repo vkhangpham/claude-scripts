@@ -226,7 +226,7 @@ def get_definition(word):
         table.add_column("Définition", style="bright_white", min_width=60)
         
         for definition in definitions:
-            def_text = definition['text']
+            def_text = definition['text'].strip()  # Remove leading/trailing whitespace
             
             # Clean up definition text and improve formatting
             # Handle field indicators that appear mid-text (e.g., "Physique4. Text")
@@ -237,8 +237,11 @@ def get_definition(word):
             if field_match:
                 field, number, rest = field_match.groups()
                 # Replace the field+number pattern with proper formatting
-                before_field = def_text[:field_match.start()]
-                def_text = f"{before_field.strip()} [bold green]{number}.[/bold green] [bold magenta]{field}.[/bold magenta] {rest.strip()}"
+                before_field = def_text[:field_match.start()].strip()
+                if before_field:
+                    def_text = f"{before_field} [bold green]{number}.[/bold green] [bold magenta]{field}.[/bold magenta] {rest.strip()}"
+                else:
+                    def_text = f"[bold green]{number}.[/bold green] [bold magenta]{field}.[/bold magenta] {rest.strip()}"
             
             # Ensure numbered definitions are clearly visible
             if re.match(r'^\d+\.', def_text):
