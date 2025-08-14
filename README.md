@@ -64,6 +64,9 @@ A collection of helpful command-line tools and scripts created with Claude's ass
 
 ## Installation
 
+For detailed setup instructions with `uv` (recommended), see [SETUP.md](SETUP.md).
+
+### Quick Setup with pip:
 1. Ensure Python 3 and required packages are installed:
    ```bash
    pip install rich verbecc requests beautifulsoup4
@@ -75,6 +78,20 @@ A collection of helpful command-line tools and scripts created with Claude's ass
    ```
 
 3. Add to PATH or create aliases as needed.
+
+### Recommended Setup with uv (faster):
+```bash
+# Install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Setup project
+uv venv && source .venv/bin/activate
+uv pip install rich verbecc requests beautifulsoup4
+chmod +x wr cj lr wr-cj speak-fr
+
+# Add to PATH
+echo 'export PATH="$PATH:'$(pwd)'"' >> ~/.zshrc && source ~/.zshrc
+```
 
 ## Cache Management
 

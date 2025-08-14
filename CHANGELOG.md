@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2025-01-14
+
+### Added
+- **SETUP.md** - Comprehensive setup guide using `uv` for fast dependency management
+  - Step-by-step installation with `uv` (10-100x faster than pip)
+  - PATH configuration for all shell types (Zsh, Bash, Fish)
+  - Virtual environment setup and activation
+  - Troubleshooting section for common issues
+  - Performance comparisons and development setup
+
+### Changed
+- Updated README.md installation section to reference detailed SETUP.md guide
+- Added quick setup options for both `pip` and `uv` workflows
+
+### Removed
+- Legacy implementation files (french-conjugator.py, wordref-clean.py, wordref-fr.py)
+- Python cache files and temporary artifacts
+
 ## [1.1.0] - 2025-01-14
 
 ### Added

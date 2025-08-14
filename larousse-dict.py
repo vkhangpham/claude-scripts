@@ -211,33 +211,60 @@ def get_definition(word):
             return
         
         # Create header panel
-        title = f"🇫🇷 Larousse: [bold blue]{word}[/bold blue]"
+        title = f"🇫🇷 Larousse: [bold cyan]{word}[/bold cyan]"
         if grammatical_info:
-            title += f" [dim]({grammatical_info})[/dim]"
+            title += f" [yellow]({grammatical_info})[/yellow]"
         
         header_content = title
         if etymology:
-            header_content += f"\n[dim]Étymologie: {etymology}[/dim]"
+            header_content += f"\n[bright_black]Étymologie: {etymology}[/bright_black]"
         
-        console.print(Panel(header_content, box=box.ROUNDED, border_style="blue"))
+        console.print(Panel(header_content, box=box.ROUNDED, border_style="cyan"))
         
-        # Create definitions table (single column since definitions already numbered)
+        # Create definitions table with better formatting
         table = Table(box=box.SIMPLE, show_header=False, pad_edge=False)
-        table.add_column("Définition", style="white", min_width=60)
+        table.add_column("Définition", style="bright_white", min_width=60)
         
         for definition in definitions:
             def_text = definition['text']
+            
+            # Clean up definition text and improve formatting
+            # Handle special field indicators that may be attached to numbers
+            field_patterns = [
+                r'^(.*)(Botanique)(\d+)\.\s*(.*)',
+                r'^(.*)(Héraldique)(\d+)\.\s*(.*)',
+                r'^(.*)(Liturgie)(\d+)\.\s*(.*)',
+                r'^(.*)(Littéraire)(\d+)\.\s*(.*)',
+                r'^(.*)(Familier)(\d+)\.\s*(.*)',
+                r'^(.*)(Populaire)(\d+)\.\s*(.*)'
+            ]
+            
+            for pattern in field_patterns:
+                match = re.match(pattern, def_text)
+                if match:
+                    prefix, field, number, text = match.groups()
+                    def_text = f"{prefix.strip()} [bold magenta]{field}.[/bold magenta] {text.strip()}"
+                    break
+            
+            # Ensure numbered definitions are clearly visible
+            if re.match(r'^\d+\.', def_text):
+                # Extract number and definition
+                match = re.match(r'^(\d+\.)\s*(.*)', def_text)
+                if match:
+                    number, text = match.groups()
+                    def_text = f"[bold green]{number}[/bold green] {text}"
+            
             if definition['synonyms']:
-                def_text += f"\n[dim]Synonymes: {', '.join(definition['synonyms'])}[/dim]"
+                def_text += f"\n[cyan]Synonymes: {', '.join(definition['synonyms'])}[/cyan]"
             table.add_row(def_text)
         
         console.print(table)
         
         # Show expressions if available
         if expressions:
-            console.print("\n[bold green]Expressions:[/bold green]")
+            console.print("\n[bold cyan]Expressions:[/bold cyan]")
             for expr in expressions:
-                console.print(f"  • {expr}")
+                console.print(f"  [yellow]•[/yellow] {expr}")
         
     except Exception as e:
         console.print(f"[bold red]❌ Erreur lors de l'analyse de la page: {e}[/bold red]")
