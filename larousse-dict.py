@@ -30,6 +30,113 @@ def clean_text(text):
     text = text.replace('⇒', '').replace('▷', '')
     return text
 
+def highlight_larousse_indicators(text):
+    """Highlight common Larousse dictionary indicators and markers"""
+    # Style and register markers
+    style_markers = [
+        'Littéraire', 'littéraire',
+        'Familier', 'familier', 
+        'Populaire', 'populaire',
+        'Soutenu', 'soutenu',
+        'Vieilli', 'vieilli',
+        'Argotique', 'argotique',
+        'Péjoratif', 'péjoratif',
+        'Ironique', 'ironique',
+        'Plaisant', 'plaisant',
+        'Vulgaire', 'vulgaire'
+    ]
+    
+    # Semantic relationship indicators
+    semantic_markers = [
+        'Synonymes', 'synonymes', 'Synonyme', 'synonyme',
+        'Contraires', 'contraires', 'Contraire', 'contraire',
+        'Antonymes', 'antonymes', 'Antonyme', 'antonyme'
+    ]
+    
+    # Domain and field markers (comprehensive list)
+    domain_markers = [
+        'Botanique', 'botanique',
+        'Zoologie', 'zoologie', 
+        'Médecine', 'médecine',
+        'Anatomie', 'anatomie',
+        'Physiologie', 'physiologie',
+        'Psychologie', 'psychologie',
+        'Philosophie', 'philosophie',
+        'Religion', 'religion',
+        'Théologie', 'théologie',
+        'Liturgie', 'liturgie',
+        'Histoire', 'histoire',
+        'Géographie', 'géographie',
+        'Politique', 'politique',
+        'Économie', 'économie',
+        'Droit', 'droit',
+        'Juridique', 'juridique',
+        'Militaire', 'militaire',
+        'Marine', 'marine',
+        'Aviation', 'aviation',
+        'Automobile', 'automobile',
+        'Technique', 'technique',
+        'Technologie', 'technologie',
+        'Informatique', 'informatique',
+        'Physique', 'physique',
+        'Chimie', 'chimie',
+        'Mathématiques', 'mathématiques',
+        'Géométrie', 'géométrie',
+        'Astronomie', 'astronomie',
+        'Astrologie', 'astrologie',
+        'Météorologie', 'météorologie',
+        'Géologie', 'géologie',
+        'Minéralogie', 'minéralogie',
+        'Agriculture', 'agriculture',
+        'Horticulture', 'horticulture',
+        'Cuisine', 'cuisine',
+        'Gastronomie', 'gastronomie',
+        'Mode', 'mode',
+        'Couture', 'couture',
+        'Arts', 'arts',
+        'Peinture', 'peinture',
+        'Sculpture', 'sculpture',
+        'Musique', 'musique',
+        'Danse', 'danse',
+        'Théâtre', 'théâtre',
+        'Cinéma', 'cinéma',
+        'Littérature', 'littérature',
+        'Poésie', 'poésie',
+        'Architecture', 'architecture',
+        'Héraldique', 'héraldique',
+        'Topographie', 'topographie',
+        'Cartographie', 'cartographie',
+        'Sports', 'sports',
+        'Jeux', 'jeux',
+        'Échecs', 'échecs',
+        'Cartes', 'cartes',
+        'Photographie', 'photographie',
+        'Typographie', 'typographie',
+        'Linguistique', 'linguistique',
+        'Grammaire', 'grammaire',
+        'Rhétorique', 'rhétorique'
+    ]
+    
+    # Apply highlighting
+    # Style markers in italic yellow
+    for marker in style_markers:
+        pattern = r'\b(' + re.escape(marker) + r')\b'
+        text = re.sub(pattern, r'[italic yellow]\1[/italic yellow]', text)
+    
+    # Semantic markers in bold cyan  
+    for marker in semantic_markers:
+        pattern = r'\b(' + re.escape(marker) + r')\s*:'
+        text = re.sub(pattern, r'[bold cyan]\1[/bold cyan]:', text)
+    
+    # Domain markers already handled by field indicator logic, but highlight standalone ones
+    for marker in domain_markers:
+        # Only highlight if not already processed by field indicator logic
+        if f'[bold magenta]{marker}.[/bold magenta]' not in text:
+            pattern = r'\b(' + re.escape(marker) + r')\.'
+            text = re.sub(pattern, r'[bold magenta]\1.[/bold magenta]', text)
+    
+    return text
+
 def extract_definitions(soup):
     """Extract numbered definitions from the page"""
     definitions = []
@@ -250,6 +357,9 @@ def get_definition(word):
                 if match:
                     number, text = match.groups()
                     def_text = f"[bold green]{number}[/bold green] {text}"
+            
+            # Highlight common Larousse indicators and markers
+            def_text = highlight_larousse_indicators(def_text)
             
             if definition['synonyms']:
                 def_text += f"\n[cyan]Synonymes: {', '.join(definition['synonyms'])}[/cyan]"
