@@ -229,22 +229,16 @@ def get_definition(word):
             def_text = definition['text']
             
             # Clean up definition text and improve formatting
-            # Handle special field indicators that may be attached to numbers
-            field_patterns = [
-                r'^(.*)(Botanique)(\d+)\.\s*(.*)',
-                r'^(.*)(Héraldique)(\d+)\.\s*(.*)',
-                r'^(.*)(Liturgie)(\d+)\.\s*(.*)',
-                r'^(.*)(Littéraire)(\d+)\.\s*(.*)',
-                r'^(.*)(Familier)(\d+)\.\s*(.*)',
-                r'^(.*)(Populaire)(\d+)\.\s*(.*)'
-            ]
+            # Handle field indicators that appear mid-text (e.g., "Physique4. Text")
+            # First, try to separate field names that are attached to numbers
+            field_pattern = r'(Botanique|Héraldique|Liturgie|Littéraire|Familier|Populaire|Physique|Topographie|Mathématiques|Médecine|Droit|Histoire|Géographie|Économie|Informatique)(\d+)\.\s*(.*)'
+            field_match = re.search(field_pattern, def_text)
             
-            for pattern in field_patterns:
-                match = re.match(pattern, def_text)
-                if match:
-                    prefix, field, number, text = match.groups()
-                    def_text = f"{prefix.strip()} [bold magenta]{field}.[/bold magenta] {text.strip()}"
-                    break
+            if field_match:
+                field, number, rest = field_match.groups()
+                # Replace the field+number pattern with proper formatting
+                before_field = def_text[:field_match.start()]
+                def_text = f"{before_field.strip()} [bold green]{number}.[/bold green] [bold magenta]{field}.[/bold magenta] {rest.strip()}"
             
             # Ensure numbered definitions are clearly visible
             if re.match(r'^\d+\.', def_text):
